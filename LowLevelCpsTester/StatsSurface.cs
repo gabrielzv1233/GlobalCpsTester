@@ -9,14 +9,14 @@ namespace LowLevelCpsTester;
 internal sealed class StatsSurface : Control
 {
     public const int OuterPadding = 5;
-    public const int ControlWidth = 84;
+    public const int ControlWidth = 90;
     public const int ControlHeight = 32;
     public const int GridColumns = 3;
     public const int GridRows = 2;
-    public const int InstantBottomMargin = 5;
-    public const int PeakBottomMargin = 4;
-    public const int TotalBottomMargin = 4;
-    public const int SinceLastBottomMargin = 10;
+    public const int InstantBottomMargin = 0;
+    public const int PeakBottomMargin = 0;
+    public const int TotalBottomMargin = 0;
+    public const int SinceLastBottomMargin = 5;
 
     private const string SubtitleSample = "Captures left, right, middle, and X1/2";
     private const string InstantSample = "Instant CPS: 0.00";

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace LowLevelCpsTester;
 
@@ -12,38 +13,41 @@ internal readonly record struct ClickSnapshot(
 
 internal sealed class ClickMetrics
 {
-    private const long OneSecondWindowMs = 1000;
+    private const double OneSecondWindowMs = 1000.0;
 
-    private readonly ConcurrentQueue<long> _pendingClicks = new();
-    private readonly Queue<long> _recentClicks = new();
+    private readonly ConcurrentQueue<PendingClick> _pendingClicks = new();
+    private readonly Queue<double> _recentClickTimesMs = new();
+    private readonly Queue<long> _recentClickStopwatchTicks = new();
     private readonly object _sync = new();
 
     private ClickSnapshot _cachedSnapshot = new(0, 0, 0, double.NaN);
     private double _peakCps;
     private long _totalClicks;
-    private long _lastClickTimestampMs;
+    private long _lastClickStopwatchTicks;
 
     public void RegisterClick(long timestampMs)
     {
-        _pendingClicks.Enqueue(timestampMs);
+        _pendingClicks.Enqueue(new PendingClick(timestampMs, Stopwatch.GetTimestamp()));
     }
 
     public void Advance(long nowTimestampMs)
     {
+        long nowStopwatchTicks = Stopwatch.GetTimestamp();
+
         lock (_sync)
         {
             DrainPendingClicksLocked();
             TrimExpiredClicksLocked(nowTimestampMs);
 
-            double instantCps = ComputeCurrentCpsLocked(nowTimestampMs);
+            double instantCps = ComputeCurrentCpsLocked(nowStopwatchTicks);
             if (instantCps > _peakCps)
             {
                 _peakCps = instantCps;
             }
 
-            double sinceLastClickMs = _lastClickTimestampMs == 0
+            double sinceLastClickMs = _lastClickStopwatchTicks == 0
                 ? double.NaN
-                : Math.Max(0, nowTimestampMs - _lastClickTimestampMs);
+                : Math.Max(0, StopwatchTicksToMilliseconds(nowStopwatchTicks - _lastClickStopwatchTicks));
 
             _cachedSnapshot = new ClickSnapshot(
                 InstantCps: instantCps,
@@ -77,51 +81,65 @@ internal sealed class ClickMetrics
 
         lock (_sync)
         {
-            _recentClicks.Clear();
+            _recentClickTimesMs.Clear();
+            _recentClickStopwatchTicks.Clear();
             _peakCps = 0;
             _totalClicks = 0;
-            _lastClickTimestampMs = 0;
+            _lastClickStopwatchTicks = 0;
             _cachedSnapshot = new ClickSnapshot(0, 0, 0, double.NaN);
         }
     }
 
     private void DrainPendingClicksLocked()
     {
-        while (_pendingClicks.TryDequeue(out long timestampMs))
+        while (_pendingClicks.TryDequeue(out PendingClick pendingClick))
         {
-            _recentClicks.Enqueue(timestampMs);
+            _recentClickTimesMs.Enqueue(pendingClick.TimestampMs);
+            _recentClickStopwatchTicks.Enqueue(pendingClick.StopwatchTicks);
             _totalClicks++;
-            _lastClickTimestampMs = timestampMs;
-            TrimExpiredClicksLocked(timestampMs);
-
-            double instantCps = ComputeCurrentCpsLocked(timestampMs);
-            if (instantCps > _peakCps)
-            {
-                _peakCps = instantCps;
-            }
+            _lastClickStopwatchTicks = pendingClick.StopwatchTicks;
         }
     }
 
-    private void TrimExpiredClicksLocked(long nowTimestampMs)
+    private void TrimExpiredClicksLocked(double nowTimestampMs)
     {
-        while (_recentClicks.Count > 0 && nowTimestampMs - _recentClicks.Peek() >= OneSecondWindowMs)
+        while (_recentClickTimesMs.Count > 0 && nowTimestampMs - _recentClickTimesMs.Peek() >= OneSecondWindowMs)
         {
-            _recentClicks.Dequeue();
+            _recentClickTimesMs.Dequeue();
+            _recentClickStopwatchTicks.Dequeue();
         }
     }
 
-    private double ComputeCurrentCpsLocked(long nowTimestampMs)
+    private double ComputeCurrentCpsLocked(long nowStopwatchTicks)
     {
-        if (_recentClicks.Count == 0)
+        int count = _recentClickStopwatchTicks.Count;
+        if (count == 0)
         {
             return 0;
         }
 
-        if (_lastClickTimestampMs == 0 || nowTimestampMs - _lastClickTimestampMs >= OneSecondWindowMs)
+        double sinceLastClickMs = _lastClickStopwatchTicks == 0
+            ? OneSecondWindowMs
+            : Math.Max(0, StopwatchTicksToMilliseconds(nowStopwatchTicks - _lastClickStopwatchTicks));
+
+        if (count == 1)
         {
-            return 0;
+            double singleClickDecay = 1.0 - Math.Clamp(sinceLastClickMs / OneSecondWindowMs, 0.0, 1.0);
+            return singleClickDecay;
         }
 
-        return _recentClicks.Count;
+        long oldestStopwatchTicks = _recentClickStopwatchTicks.Peek();
+        double spanMs = Math.Max(0.001, StopwatchTicksToMilliseconds(_lastClickStopwatchTicks - oldestStopwatchTicks));
+        double averageIntervalMs = Math.Max(0.001, spanMs / (count - 1));
+
+        double decayedCps = count - (sinceLastClickMs / averageIntervalMs);
+        return Math.Max(0, decayedCps);
     }
+
+    private static double StopwatchTicksToMilliseconds(long stopwatchTicks)
+    {
+        return stopwatchTicks * 1000.0 / Stopwatch.Frequency;
+    }
+
+    private readonly record struct PendingClick(double TimestampMs, long StopwatchTicks);
 }
