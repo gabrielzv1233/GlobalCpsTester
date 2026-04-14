@@ -6,6 +6,11 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+
+    <AssemblyName>GlobalCpsTester</AssemblyName>
+    <Company>Gabrielzv1233</Company>
+    <Product>Global CPS Tester</Product>
+    <Description>Low-level global CPS tester</Description>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">

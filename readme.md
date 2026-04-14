@@ -12,3 +12,15 @@ You can click inside the app, another window, or even another display.
   > When clicking inside the window, CPS may read higher than when clicking outside.  
   > Below a certain threshold (~825 CPS for me), both values should be nearly identical.  
   > This is because windows limitations on detecting inputs outside of a window as far as I can tell.  
+
+## Building the executable
+
+Single executable
+```powershell
+dotnet publish .\GlobalCpsTester\GlobalCpsTester.csproj -c Release -r win-x64 --self-contained true
+```
+
+Unbundled executable
+```powershell
+dotnet publish .\GlobalCpsTester\GlobalCpsTester.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false
+```
