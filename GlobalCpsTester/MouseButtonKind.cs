@@ -1,4 +1,4 @@
-namespace LowLevelCpsTester;
+namespace GlobalCpsTester;
 
 internal enum MouseButtonKind
 {

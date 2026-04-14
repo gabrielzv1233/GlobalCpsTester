@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Globalization;
 using System.Windows.Forms;
 
-namespace LowLevelCpsTester;
+namespace GlobalCpsTester;
 
 internal sealed class StatsSurface : Control
 {

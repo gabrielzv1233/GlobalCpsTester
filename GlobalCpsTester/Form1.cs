@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace LowLevelCpsTester;
+namespace GlobalCpsTester;
 
 public sealed class Form1 : Form
 {
@@ -29,7 +29,7 @@ public sealed class Form1 : Form
     {
         _hook = new GlobalMouseHook(HandleGlobalClick);
 
-        Text = "Low Level CPS Tester";
+        Text = "Global CPS Tester";
         AutoScaleMode = AutoScaleMode.Dpi;
         AutoSize = false;
         BackColor = UiTheme.Background;

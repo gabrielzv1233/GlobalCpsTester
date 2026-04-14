@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace LowLevelCpsTester;
+namespace GlobalCpsTester;
 
 internal readonly record struct ClickSnapshot(
     double InstantCps,
