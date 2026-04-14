@@ -3,6 +3,8 @@
 A CPS tester that works no matter where you click on the screen, built in C#.  
 You can click inside the app, another window, or even another display.
 
+A vibecoded simpler version of this exists here [gabrielzv1233/Simple-CPS-Tester](https://github.com/gabrielzv1233/Simple-CPS-Tester/), This tosses some features, and is recoded in C++  
+
 ## Known Issues
 
 - Clicking near the checkboxes can cause CPS updates to lag or freeze at very high CPS.  
